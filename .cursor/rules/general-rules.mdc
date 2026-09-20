@@ -1,0 +1,26 @@
+---
+description: General agent behavior — smallest diffs, no extra files, no drive-by work
+alwaysApply: true
+---
+
+# General Rules
+
+Prefer the smallest change that completes the request. Do not reformat, refactor, or restyle unrelated code.
+
+## Scope
+
+- Edit only the files and lines needed for the task.
+- Do not create extra files, folders, docs, tests, or configs unless the user asked or the change cannot work without them.
+- Do not delete or rename files as a side effect.
+- Do not "clean up while you're here": no drive-by refactors, unused-import sweeps, comment rewrites, or style pass over the whole file.
+
+## When adding code
+
+- Reuse existing helpers, types, and patterns instead of introducing new abstractions.
+- Add comments only when the logic is non-obvious; never narrate the diff.
+- If a larger cleanup would help, mention it in the reply — do not apply it unasked.
+
+```text
+BAD: rewrite a whole module to add one function; reformat imports; add README + extra util file
+GOOD: add the function next to its callers, same style, no other files
+```

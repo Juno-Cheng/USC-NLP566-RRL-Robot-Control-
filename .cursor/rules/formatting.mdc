@@ -1,0 +1,34 @@
+---
+description: Formatting and structure — no emojis, consistent style, modular files
+alwaysApply: true
+---
+
+# Formatting
+
+Apply this style to new and edited code. Do not reformat untouched regions.
+
+## Voice and markup
+
+- No emojis in code, comments, docs, commit messages, or UI copy unless the user asked.
+- No decorative ASCII art, banner comments, or `# ===` section dividers.
+- Write comments and docs in plain English. Prefer short sentences.
+- Markdown: ATX headings (`#`, `##`), fenced code blocks with a language tag, hyphen bullets.
+
+## Code style
+
+- Match the surrounding file for indent, quotes, and line length. Default Python: 4 spaces, `snake_case`.
+- Names describe the role (`load_policy`, `joint_targets`), not placeholders (`temp`, `data2`, `foo`).
+- One import block at the top; no unused imports in code you touch.
+- Prefer early returns over deep nesting. Keep functions focused on one job.
+
+## Modular layout
+
+- Split by concern: config, data, models, control, training, eval, scripts — not one growing file.
+- New logic belongs in the module that already owns that concern. Add a file only when the existing one would mix unrelated jobs.
+- Public helpers live in shared modules; experiment one-offs stay in `scripts/` (or equivalent).
+- Keep side effects at the edges (`main`, CLI, train loop). Library modules should be import-safe.
+
+```text
+BAD:  # 🚀 Train 🚀   + train_eval_plot_utils.py with everything inlined
+GOOD: train.py calls rrl.train.run_epoch(); plotting stays in rrl.plotting
+```
