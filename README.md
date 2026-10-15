@@ -7,7 +7,7 @@
 1. Change into the directory where you have cloned the repo. Change into "Docker" directory in the repo.
 
 Run the following command:
-    'batch docker build -t my_container .'
+    'docker build -t my_container .'
 
 This will pull the image. After the image is pulled start it as a container.
 
