@@ -14,6 +14,24 @@ Corruption types (intensity 0 always means "no change"):
 - uniform: add noise drawn evenly from [-intensity, +intensity].
   Uniform is held out: no training condition uses it.
 
+Example: one observation (10 values, positions in meters) before and after
+each corruption. Noise values are illustrative; a fresh draw happens every step.
+
+    #  meaning                     clean   gaussian 0.1  dropout 0.2  uniform 0.1
+    0  cos(joint 1 angle)          0.995   1.065         0.995        0.935
+    1  cos(joint 2 angle)          0.999   0.879         0.999        1.089
+    2  sin(joint 1 angle)          0.095   0.125         0.095        0.075
+    3  sin(joint 2 angle)         -0.042   0.108        -0.042       -0.002
+    4  target x                    0.120   0.070         0            0.200
+    5  target y                   -0.080  -0.060        -0.080       -0.180
+    6  joint 1 speed               0.003  -0.087         0.003        0.013
+    7  joint 2 speed              -0.002   0.108        -0.002       -0.072
+    8  fingertip - target, x       0.090   0.050         0            0.140
+    9  fingertip - target, y       0.091   0.151         0.091        0.061
+
+The same intensity is a different relative error per value: about 10% on the
+cos values (near 1.0), but about 100% on positions (near 0.1) and more on speeds.
+
 When it is called:
 
 - Training (src/train.py): wrap the env with the YAML's train_corruption.
