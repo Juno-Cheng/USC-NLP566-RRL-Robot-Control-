@@ -1,0 +1,18 @@
+# C0. Frozen on Nov 1.
+condition: C0
+name: clean
+env_id: Reacher-v5
+algo: ppo
+seed: 0
+total_timesteps: 200000
+n_steps: 2048
+batch_size: 64
+n_epochs: 10
+learning_rate: 0.0003
+gamma: 0.99
+net_arch: [64, 64]
+train_corruption:
+  type: none
+  intensity: 0.0
+rolldrop:
+  dropout_p: 0.0
