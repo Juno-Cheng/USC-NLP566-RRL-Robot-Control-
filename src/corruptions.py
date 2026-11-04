@@ -53,6 +53,7 @@ the corrupted observation.
 """
 
 import gymnasium
+import numpy
 
 CORRUPTION_TYPES = ("none", "gaussian", "dropout", "uniform")
 
@@ -63,23 +64,25 @@ def apply_corruption(obs, corruption_type, intensity, rng):
     Input: obs (numpy array, shape (10,)), corruption_type (one of
     CORRUPTION_TYPES), intensity (float >= 0), rng (numpy Generator).
     Output: numpy array with the same shape as obs.
-
-    Pseudocode:
-
-        if corruption_type not in CORRUPTION_TYPES: raise ValueError
-        if corruption_type == "none" or intensity == 0: return obs.copy()
-
-        if corruption_type == "gaussian":
-            return obs + rng.normal(0, intensity, size=obs.shape)
-
-        if corruption_type == "dropout":
-            keep = rng.random(obs.shape) >= intensity  # True means keep
-            return obs * keep
-
-        if corruption_type == "uniform":
-            return obs + rng.uniform(-intensity, intensity, size=obs.shape)
     """
-    return None
+    if corruption_type not in CORRUPTION_TYPES:
+        raise ValueError(
+            f"unknown corruption type {corruption_type!r}, expected one of {CORRUPTION_TYPES}"
+        )
+    if intensity < 0:
+        raise ValueError(f"intensity must be >= 0, got {intensity}")
+    if corruption_type == "none" or intensity == 0:
+        return obs.copy()
+
+    if corruption_type == "gaussian":
+        return obs + rng.normal(0, intensity, size=obs.shape)
+
+    if corruption_type == "dropout":
+        keep = rng.random(obs.shape) >= intensity  # True means keep
+        return obs * keep
+
+    # Only "uniform" is left.
+    return obs + rng.uniform(-intensity, intensity, size=obs.shape)
 
 
 class CorruptObservation(gymnasium.ObservationWrapper):
@@ -92,31 +95,24 @@ class CorruptObservation(gymnasium.ObservationWrapper):
     def __init__(self, env, corruption_type, intensity, seed):
         """Store the settings and create a seeded random generator.
 
-        Pseudocode:
-
-            super().__init__(env)
-            self.corruption_type = corruption_type
-            self.intensity = intensity
-            self.rng = numpy.random.default_rng(seed)  # same seed, same noise
+        The generator is created once here, and env.reset(seed=...) does not
+        reseed it. A fresh wrapper with the same seed replays the same noise.
         """
-        return None
+        super().__init__(env)
+        self.corruption_type = corruption_type
+        self.intensity = intensity
+        self.rng = numpy.random.default_rng(seed)
 
     def observation(self, obs):
-        """Return the corrupted observation.
-
-        Pseudocode:
-
-            return apply_corruption(obs, self.corruption_type, self.intensity, self.rng)
-        """
-        return None
+        """Return the corrupted observation."""
+        return apply_corruption(obs, self.corruption_type, self.intensity, self.rng)
 
 
 def wrap_env(env, corruption_type, intensity, seed):
     """Wrap env so its observations are corrupted. train.py and evaluate.py call this.
 
-    Pseudocode:
-
-        if corruption_type == "none" or intensity == 0: return env
-        return CorruptObservation(env, corruption_type, intensity, seed)
+    Returns env itself when there is nothing to corrupt.
     """
-    return None
+    if corruption_type == "none" or intensity == 0:
+        return env
+    return CorruptObservation(env, corruption_type, intensity, seed)
