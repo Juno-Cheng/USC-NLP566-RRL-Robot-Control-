@@ -86,7 +86,7 @@ def make_run_id(config):
 
 
 def make_env(config):
-    """Build Reacher-v5 and apply train_corruption.
+    """Build Reacher-v5 model and apply train_corruption.
 
     Input: config dict.
     Output: Gymnasium env. C0/C3 get the plain env. C1/C2 get wrap_env.
@@ -94,8 +94,13 @@ def make_env(config):
     wrap_env(env, type, intensity, seed) lives in src/corruptions.py.
     It returns env unchanged when type is none or intensity is 0.
     """
-    env = gymnasium.make(config["env_id"])
-    corr = config["train_corruption"]
+    env = gymnasium.make(config["env_id"]) # "Makes" the robot environment specifically for "Reacher-v5 (config['env_id'])"
+    corr = config["train_corruption"] # "corruption" is a dictionary with two keys: "type" and "intensity"
+
+    # C1/C2: wrap so every later reset/step observation is corrupted.
+    # C0/C3: type is none, so wrap_env returns this env unchanged.
+
+    # Creates a ObservationWrapper class that will be passed to the PPO model as the environment
     return wrap_env(env, corr["type"], corr["intensity"], config["seed"])
 
 
@@ -119,7 +124,7 @@ def make_model(env, config):
         raise NotImplementedError("C3 needs the Roll-Drop policy from src/rolldrop.py")
     return PPO(
         "MlpPolicy",
-        env,
+        env, # Passed ObservationWrapper to update the observations
         n_steps=config["n_steps"],
         batch_size=config["batch_size"],
         n_epochs=config["n_epochs"],
@@ -169,13 +174,21 @@ def train(config, timesteps=None, n_steps=None):
     Apply overrides, then make_env, make_model, model.learn, write_outputs.
     Do not call evaluate.py from here.
     """
+    # Apply overrides, then make_env, make_model, model.learn, write_outputs.
     if timesteps is not None:
         config["total_timesteps"] = timesteps
     if n_steps is not None:
         config["n_steps"] = n_steps
+
+    # Folder for this run, e.g. results/C0_clean_seed0.
     run_dir = Path.cwd() / "results" / make_run_id(config)
+
+    # Build Reacher-v5. and add corruption to the observations as a setting in the model.
     env = make_env(config)
+
+    # PPO trainer + network. Same constructor for C0-C2.
     try:
+        # PPO trainer + network. Same constructor for C0-C2.
         model = make_model(env, config)
         model.learn(total_timesteps=config["total_timesteps"])
         write_outputs(run_dir, model, config)
