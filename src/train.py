@@ -32,10 +32,17 @@ write_outputs, then C1/C2 via wrap_env, then C3 once rolldrop.py exposes a
 policy with dropout on during rollouts and off during updates.
 """
 
-import yaml
 import argparse
-import sys
+import json
+import subprocess
+from importlib import metadata
 from pathlib import Path
+
+import gymnasium
+import yaml
+from stable_baselines3 import PPO
+
+from src.corruptions import wrap_env
 
 
 def parse_args(argv=None):
@@ -44,16 +51,12 @@ def parse_args(argv=None):
     Input: argv list, or None to use sys.argv.
     Output: namespace with config (path), timesteps (int or None),
     n_steps (int or None).
-
-    Pseudocode:
-
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--config", required=True)
-        parser.add_argument("--timesteps", type=int, default=None)
-        parser.add_argument("--n-steps", type=int, default=None, dest="n_steps")
-        return parser.parse_args(argv)
     """
-    return None
+    parser = argparse.ArgumentParser(description="Train one condition from a config.")
+    parser.add_argument("--config", required=True)
+    parser.add_argument("--timesteps", type=int, default=None)
+    parser.add_argument("--n-steps", type=int, default=None, dest="n_steps")
+    return parser.parse_args(argv)
 
 
 def load_config(path):
@@ -63,31 +66,23 @@ def load_config(path):
     or rolldrop.yaml.
     Output: dict with condition, name, env_id, algo, seed, PPO fields,
     train_corruption, rolldrop.
-
-    """
-      try: 
-            with open(path) as f:
-                  config = yaml.safe_load(f)
-                  return config
-      except FileNotFoundError:
+"""
+      
+    try:
+        with open(path) as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
         raise FileNotFoundError(f"Config file not found: {path}")
-      except yaml.YAMLError as e:
+    except yaml.YAMLError as e:
         raise yaml.YAMLError(f"Error loading config file: {path}") from e
-    
-    
 
 
 def make_run_id(config):
     """Build the results folder name for this run.
-
     Input: config dict.
     Output: string, e.g. C0_clean_seed0.
-
-    Pseudocode:
-
-        return f"{config['condition']}_{config['name']}_seed{config['seed']}"
     """
-    return None
+    return f"{config['condition']}_{config['name']}_seed{config['seed']}"
 
 
 def make_env(config):
@@ -98,14 +93,10 @@ def make_env(config):
 
     wrap_env(env, type, intensity, seed) lives in src/corruptions.py.
     It returns env unchanged when type is none or intensity is 0.
-
-    Pseudocode:
-
-        env = gymnasium.make(config["env_id"])
-        corr = config["train_corruption"]
-        return wrap_env(env, corr["type"], corr["intensity"], config["seed"])
     """
-    return None
+    env = gymnasium.make(config["env_id"])
+    corr = config["train_corruption"]
+    return wrap_env(env, corr["type"], corr["intensity"], config["seed"])
 
 
 def make_model(env, config):
@@ -121,26 +112,23 @@ def make_model(env, config):
     from src/rolldrop.py. That class is not ready yet (rolldrop.py currently
     drops whole transitions, not network inputs). Until it is, C0-C2 use
     MlpPolicy and C3 should fail clearly rather than train the wrong thing.
-
-    Pseudocode:
-
-        policy_kwargs = {"net_arch": config["net_arch"]}
-        policy = "MlpPolicy"
-        if config["rolldrop"]["dropout_p"] > 0:
-            policy = RollDropPolicy  # from src/rolldrop.py once it exists
-        return PPO(
-            policy, env,
-            n_steps=config["n_steps"],
-            batch_size=config["batch_size"],
-            n_epochs=config["n_epochs"],
-            learning_rate=config["learning_rate"],
-            gamma=config["gamma"],
-            policy_kwargs=policy_kwargs,
-            seed=config["seed"],
-            tensorboard_log=None,
-        )
     """
-    return None
+    if config["algo"] != "ppo":
+        raise ValueError(f"unsupported algo {config['algo']!r}, expected 'ppo'")
+    if config["rolldrop"]["dropout_p"] > 0:
+        raise NotImplementedError("C3 needs the Roll-Drop policy from src/rolldrop.py")
+    return PPO(
+        "MlpPolicy",
+        env,
+        n_steps=config["n_steps"],
+        batch_size=config["batch_size"],
+        n_epochs=config["n_epochs"],
+        learning_rate=config["learning_rate"],
+        gamma=config["gamma"],
+        policy_kwargs={"net_arch": config["net_arch"]},
+        seed=config["seed"],
+        tensorboard_log=None,
+    )
 
 
 def write_outputs(run_dir, model, config):
@@ -152,15 +140,24 @@ def write_outputs(run_dir, model, config):
 
     manifest.json should include condition, name, seed, run_id,
     gymnasium/stable_baselines3/torch versions, and git commit if available.
-
-    Pseudocode:
-
-        run_dir.mkdir(parents=True, exist_ok=True)
-        model.save(run_dir / "model.zip")
-        write config.yaml copy
-        write manifest.json
     """
-    return None
+    run_dir = Path(run_dir)
+    run_dir.mkdir(parents=True, exist_ok=True)
+    model.save(run_dir / "model.zip")
+    with open(run_dir / "config.yaml", "w") as f:
+        yaml.safe_dump(config, f, sort_keys=False)
+    manifest = {
+        "run_id": run_dir.name,
+        "condition": config["condition"],
+        "name": config["name"],
+        "seed": config["seed"],
+        "versions": {
+            package: metadata.version(package)
+            for package in ("gymnasium", "stable-baselines3", "torch")
+        },
+    }
+    with open(run_dir / "manifest.json", "w") as f:
+        json.dump(manifest, f, indent=2)
 
 
 def train(config, timesteps=None, n_steps=None):
@@ -171,39 +168,27 @@ def train(config, timesteps=None, n_steps=None):
 
     Apply overrides, then make_env, make_model, model.learn, write_outputs.
     Do not call evaluate.py from here.
-
-    Pseudocode:
-
-        if timesteps is not None: config["total_timesteps"] = timesteps
-        if n_steps is not None: config["n_steps"] = n_steps
-        run_dir = Path("results") / make_run_id(config)
-        env = make_env(config)
+    """
+    if timesteps is not None:
+        config["total_timesteps"] = timesteps
+    if n_steps is not None:
+        config["n_steps"] = n_steps
+    run_dir = Path.cwd() / "results" / make_run_id(config)
+    env = make_env(config)
+    try:
         model = make_model(env, config)
         model.learn(total_timesteps=config["total_timesteps"])
         write_outputs(run_dir, model, config)
+    finally:
         env.close()
-        return run_dir
-    """
-    return None
+    return run_dir
 
 
 def main(argv=None):
-    """CLI entry. parse_args, load_config, train.
-
-    Pseudocode:
-
-        args = parse_args(argv)
-        config = load_config(args.config)
-        train(config, timesteps=args.timesteps, n_steps=args.n_steps)
-    """
-
-    # Check Args and See What Yaml is needed
-
-    # Load the Yaml
+    args = parse_args(argv)
     config = load_config(args.config)
-
-
-    return None
+    run_dir = train(config, timesteps=args.timesteps, n_steps=args.n_steps)
+    print(f"saved {run_dir}")
 
 
 if __name__ == "__main__":
