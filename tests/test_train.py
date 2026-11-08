@@ -108,11 +108,17 @@ def test_make_model_c0_is_ppo():
         env.close()
 
 
-def test_make_model_c3_fails_until_rolldrop_policy_exists():
+def test_make_model_c3_uses_rolldrop_policy():
+    from stable_baselines3 import PPO
+
+    from src.rolldrop import RollDropPolicy
+
     env = gymnasium.make("Reacher-v5")
     try:
-        with pytest.raises((NotImplementedError, ValueError)):
-            make_model(env, load_config(CONFIGS["C3"]))
+        model = make_model(env, load_config(CONFIGS["C3"]))
+        assert isinstance(model, PPO)
+        assert isinstance(model.policy, RollDropPolicy)
+        assert model.policy.dropout_p == 0.1
     finally:
         env.close()
 

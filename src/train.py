@@ -43,6 +43,7 @@ import yaml
 from stable_baselines3 import PPO
 
 from src.corruptions import wrap_env
+from src.rolldrop import RollDropPolicy
 
 
 def parse_args(argv=None):
@@ -113,24 +114,26 @@ def make_model(env, config):
     Shared across C0-C3: n_steps, batch_size, n_epochs, learning_rate,
     gamma, net_arch, seed. algo must be ppo.
 
-    C3 hook: if config["rolldrop"]["dropout_p"] > 0, use the policy class
-    from src/rolldrop.py. That class is not ready yet (rolldrop.py currently
-    drops whole transitions, not network inputs). Until it is, C0-C2 use
-    MlpPolicy and C3 should fail clearly rather than train the wrong thing.
+    C3: RollDropPolicy from src/rolldrop.py when dropout_p > 0.
+    Dropout runs in policy.forward (rollouts) and not in evaluate_actions (updates).
     """
     if config["algo"] != "ppo":
         raise ValueError(f"unsupported algo {config['algo']!r}, expected 'ppo'")
-    if config["rolldrop"]["dropout_p"] > 0:
-        raise NotImplementedError("C3 needs the Roll-Drop policy from src/rolldrop.py")
+    dropout_p = config["rolldrop"]["dropout_p"]
+    policy_kwargs = {"net_arch": config["net_arch"]}
+    policy = "MlpPolicy"
+    if dropout_p > 0:
+        policy = RollDropPolicy
+        policy_kwargs["dropout_p"] = dropout_p
     return PPO(
-        "MlpPolicy",
-        env, # Passed ObservationWrapper to update the observations
+        policy,
+        env,
         n_steps=config["n_steps"],
         batch_size=config["batch_size"],
         n_epochs=config["n_epochs"],
         learning_rate=config["learning_rate"],
         gamma=config["gamma"],
-        policy_kwargs={"net_arch": config["net_arch"]},
+        policy_kwargs=policy_kwargs,
         seed=config["seed"],
         tensorboard_log=None,
     )
