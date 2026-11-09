@@ -1,0 +1,17 @@
+run_id,condition,name,corruption_id,corruption_type,intensity,seen,mean_return,std_across_seeds,mean_success_rate
+C1_gaussian_aug_seed0,C1,gaussian_aug,clean,none,0.0,True,-9.582737233910573,0.17703521876949369,0.10000000000000002
+C1_gaussian_aug_seed0,C1,gaussian_aug,gaussian,gaussian,0.0,True,-9.582737233910573,0.17703521876949369,0.10000000000000002
+C1_gaussian_aug_seed0,C1,gaussian_aug,gaussian,gaussian,0.05,True,-9.617168798385094,0.20434360888392766,0.11666666666666665
+C1_gaussian_aug_seed0,C1,gaussian_aug,gaussian,gaussian,0.1,True,-9.690148695391434,0.24229962635918054,0.11666666666666665
+C1_gaussian_aug_seed0,C1,gaussian_aug,gaussian,gaussian,0.2,True,-9.99897745538118,0.29105993138004727,0.05000000000000001
+C1_gaussian_aug_seed0,C1,gaussian_aug,gaussian,gaussian,0.4,True,-11.025719055324993,0.3921950158601256,0.06666666666666667
+C1_gaussian_aug_seed0,C1,gaussian_aug,dropout,dropout,0.0,True,-9.582737233910573,0.17703521876949369,0.10000000000000002
+C1_gaussian_aug_seed0,C1,gaussian_aug,dropout,dropout,0.1,False,-9.699948413355022,0.1925894025304201,0.11666666666666665
+C1_gaussian_aug_seed0,C1,gaussian_aug,dropout,dropout,0.2,False,-9.722951512067448,0.28427700963603897,0.08333333333333333
+C1_gaussian_aug_seed0,C1,gaussian_aug,dropout,dropout,0.4,False,-9.850254485576306,0.34325211296772506,0.05000000000000001
+C1_gaussian_aug_seed0,C1,gaussian_aug,dropout,dropout,0.6,False,-10.972434185350318,0.26436820739160755,0.0
+C1_gaussian_aug_seed0,C1,gaussian_aug,uniform,uniform,0.0,True,-9.582737233910573,0.17703521876949369,0.10000000000000002
+C1_gaussian_aug_seed0,C1,gaussian_aug,uniform,uniform,0.05,False,-9.60607000428974,0.1794708590525647,0.10000000000000002
+C1_gaussian_aug_seed0,C1,gaussian_aug,uniform,uniform,0.1,False,-9.647577939127762,0.1817630119178722,0.10000000000000002
+C1_gaussian_aug_seed0,C1,gaussian_aug,uniform,uniform,0.2,False,-9.784373790682034,0.17945257016689914,0.10000000000000002
+C1_gaussian_aug_seed0,C1,gaussian_aug,uniform,uniform,0.4,False,-10.20052444262677,0.15452771553146913,0.05000000000000001

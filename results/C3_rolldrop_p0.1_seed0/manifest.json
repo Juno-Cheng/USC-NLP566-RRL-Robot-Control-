@@ -1,0 +1,11 @@
+{
+  "run_id": "C3_rolldrop_p0.1_seed0",
+  "condition": "C3",
+  "name": "rolldrop_p0.1",
+  "seed": 0,
+  "versions": {
+    "gymnasium": "1.4.0",
+    "stable-baselines3": "2.9.2",
+    "torch": "2.10.0"
+  }
+}
